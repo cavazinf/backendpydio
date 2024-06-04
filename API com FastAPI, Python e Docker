@@ -1,0 +1,128 @@
+1. Ambiente de desenvolvimento:
+Python: Baixe e instale a versão mais recente do Python: https://www.python.org/downloads/
+Virtualenv: Crie um ambiente virtual para isolar as dependências do projeto:
+
+python3 -m venv .venv
+source .venv/bin/activate # (Linux/macOS)
+.venv\Scripts\activate # (Windows)
+
+
+2. Crie o projeto:
+Crie um diretório para o projeto:
+mkdir fastapi-docker-api
+cd fastapi-docker-api
+
+Crie o arquivo requirements.txt:
+touch requirements.txt
+
+Crie o arquivo main.py:
+touch main.py
+
+3. Instale as dependências:
+FastAPI: Instale o FastAPI no ambiente virtual:
+pip install fastapi uvicorn
+
+Pydantic: Instale Pydantic para validação de dados:
+pip install pydantic
+
+Adicione as dependências ao requirements.txt:
+fastapi
+uvicorn
+pydantic
+
+4. Crie a API (main.py):
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+
+app = FastAPI()
+
+# Define o modelo de dados para os usuários
+class User(BaseModel):
+    id: int
+    nome: str
+    email: str
+
+# Lista de usuários (simulado, use um banco de dados em produção)
+users = [
+    {"id": 1, "nome": "João Silva", "email": "joao.silva@example.com"},
+    {"id": 2, "nome": "Maria Santos", "email": "maria.santos@example.com"}
+]
+
+# Rota para obter todos os usuários
+@app.get("/users")
+async def get_users():
+    return users
+
+# Rota para obter um usuário específico
+@app.get("/users/{user_id}")
+async def get_user(user_id: int):
+    user = next((user for user in users if user["id"] == user_id), None)
+    if user:
+        return user
+    else:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+# Rota para criar um novo usuário
+@app.post("/users")
+async def create_user(user: User):
+    users.append({"id": len(users) + 1, "nome": user.nome, "email": user.email})
+    return {"message": "Usuário criado com sucesso."}
+
+# Rota para atualizar um usuário existente
+@app.put("/users/{user_id}")
+async def update_user(user_id: int, user: User):
+    user_index = next((index for index, u in enumerate(users) if u["id"] == user_id), None)
+    if user_index is not None:
+        users[user_index] = {"id": user_id, "nome": user.nome, "email": user.email}
+        return {"message": "Usuário atualizado com sucesso."}
+    else:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+# Rota para deletar um usuário
+@app.delete("/users/{user_id}")
+async def delete_user(user_id: int):
+    user_index = next((index for index, u in enumerate(users) if u["id"] == user_id), None)
+    if user_index is not None:
+        del users[user_index]
+        return {"message": "Usuário deletado com sucesso."}
+    else:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+
+5. Executar a API:
+Inicie o servidor:
+uvicorn main:app --reload
+
+Acesse a API:
+Abra um navegador web e acesse a URL: http://127.0.0.1:8000/docs (para a documentação da API)
+Ou use ferramentas como curl ou Postman para fazer requisições HTTP.
+
+6. Dockerizar a API:
+Crie o arquivo Dockerfile:
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+Crie o arquivo docker-compose.yml:
+version: "3.9"
+services:
+  fastapi-app:
+    build: .
+    ports:
+      - "8000:8000"
+
+onstrua e execute a imagem do Docker:
+docker-compose up -d
+
+Acesse a API:
+Abra um navegador web e acesse a URL: http://localhost:8000/docs
+
+
